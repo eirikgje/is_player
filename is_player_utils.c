@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/ioctl.h>
 #include <linux/kd.h>
 #include <math.h>
@@ -8,11 +9,22 @@
 #include <ctype.h>
 
 const double REF_FREQ = log(440.0);
-const int NOTEARR[12 * 7];
 const double DLOG = log(2) / 12;
-const int FREQ_MAP[256] = {-400};
-const int OFFSET_MAP[256] = {-1000};
+int notearr[12 * 7];
+int freq_map[256] = {-400};
+int offset_map[256] = {-1000};
 double ref_time;
+
+void print_frequency(int freq_ind)
+{
+    printf("notearr\n");
+    int i;
+    for (i=0; i<12*7; i++)
+    {
+        printf("%d\n", notearr[i]);
+    }
+    printf("%d\n", notearr[freq_ind]);
+}
 
 void init_arrs()
 {
@@ -24,23 +36,23 @@ void init_arrs()
         for (j=0; j < 12; j++)
         {
             curr_ref_freq = REF_FREQ + ((i + 1) - 4) * log(2);
-            NOTEARR[i * 12 + j] = (int)(exp(curr_ref_freq + j * DLOG) * 1000 + 0.5);
+            notearr[i * 12 + j] = (int)(exp(curr_ref_freq + j * DLOG) * 1000 + 0.5);
         }
     }
-    FREQ_MAP['A'] = 0;
-    FREQ_MAP['H'] = 2;
-    FREQ_MAP['C'] = 3;
-    FREQ_MAP['D'] = 5;
-    FREQ_MAP['E'] = 7;
-    FREQ_MAP['F'] = 8;
-    FREQ_MAP['G'] = 10;
-    OFFSET_MAP['s'] = 1;
-    OFFSET_MAP['f'] = -1;
+    freq_map['A'] = 0;
+    freq_map['H'] = 2;
+    freq_map['C'] = 3;
+    freq_map['D'] = 5;
+    freq_map['E'] = 7;
+    freq_map['F'] = 8;
+    freq_map['G'] = 10;
+    offset_map['s'] = 1;
+    offset_map['f'] = -1;
 }
 
 void set_ref_time(double time)
 {
-    ref_time = time
+    ref_time = time;
 }
 
 void play_note(int fp, int freq_ind, int duration)
@@ -52,93 +64,103 @@ void play_note(int fp, int freq_ind, int duration)
 
 void play_pause(int duration)
 {
-    usleep(duration * 1000)
+    usleep(duration * 1000);
 }
 
-void resolve_command(int fp, char *command)
+// Input: Command, a string containing the encoded note (or chord) information
+// Currel: which element of the freq_ind and duration arrays we should start at
+// Output: freq_ind, an array containing the index of the frequency to be
+// played. If pause, the array element will be -1.
+// duration: double array giving the duration of the tone in milliseconds.
+// num_els: How many elements were actually added by this command (for chords,
+// it will typically be several)
+void resolve_command(char command[], int currel, int freq_ind[], double duration[], int num_els)
 {
-//    regex_t regex;
-//    int reti;
     int currpos = 0;
-    float totlength = 0;
     int numfound;
     int searchlen;
     int numerator, denominator;
     int currdivision;
-    int freq_ind;
     int octave;
     int dum;
+    duration[currel] = 0;
     if (command[0] == 'P')
     {
+        num_els = 1;
+        freq_ind[currel] = -1;
         // We want a pause - must find its length
-        currpos++
-        do while (command[currpos] != 0)
+        currpos++;
+        do
         {
             if (command[currpos] == '[')
             {
                 numfound = sscanf(command + currpos, "[%d/%d]%n", &numerator, &denominator, &searchlen);
                 if (numfound != 3)
                 {
-                    printf("Error in Pause resolution - number of arguments found are wrong");
-                    printf(numfound)
+                    printf("Error in Pause resolution - number of arguments found are wrong\n");
+                    printf("%d\n", numfound);
                     exit(0);
                 }
                 currpos += searchlen;
-                totlength += (float)numerator / float(denominator)
+                duration[currel] += (double)numerator / (double)denominator;
             }
             else
             {
                 //Input should be a number
-                currdivision = atoi(command[currpos]);
-                totlength += (0.5) ** currdivision
-                currpos++
+                currdivision = command[currpos] - '0';
+                duration[currel] += pow(0.5, currdivision);
+                currpos++;
             }
-        }
+        } while (command[currpos] != 0);
     }
     else
     {
+        num_els = 1;
         // We want a tone - must find its frequency and length
-        octave = atoi(command[0]);
+        octave = command[0] - '0';
+//        printf("octave %d\n", octave);
         currpos++;
-        dum = FREQ_MAP[command[currpos]];
+        dum = freq_map[command[currpos]];
         if (dum == -400)
         {
-            printf("Error in note resolution - note has invalid value");
+            printf("Error in note resolution - note has invalid value\n");
             exit(0);
         }
-        freq_ind = 12 * octave + command[currpos];
+//        printf("commandcurrpos %d\n", command[currpos]);
+        freq_ind[currel] = 12 * octave + dum;
         currpos++;
         if (isalpha(command[currpos]))
         {
-            dum = OFFSET_MAP[command[currpos]];
+            // Means we want a 'sharp' or 'flat' tone
+            dum = offset_map[command[currpos]];
             if (dum == -1000)
             {
-                printf("Error in note resolution - sharp/flat has invalid value")
+                printf("Error in note resolution - sharp/flat has invalid value\n");
             }
-            freq_ind += OFFSET[command[currpos]];
-            currpos++
+            freq_ind[currel] += dum;
+            currpos++;
         }
-        do while (command[currpos] != 0)
+        do
         {
             if (command[currpos] == '[')
             {
                 numfound = sscanf(command + currpos, "[%d/%d]%n", &numerator, &denominator, &searchlen);
                 if (numfound != 3)
                 {
-                    printf("Error in Pause resolution - number of arguments found are wrong");
-                    printf(numfound)
+                    printf("Error in Pause resolution - number of arguments found are wrong\n");
+                    printf("%d\n", numfound);
                     exit(0);
                 }
                 currpos += searchlen;
-                totlength += (float)numerator / float(denominator)
+                duration[currel] += (double)numerator / (double)denominator;
             }
             else
             {
                 //Input should be a number
-                currdivision = atoi(command[currpos]);
-                totlength += (0.5) ** currdivision
-                currpos++
+                currdivision = command[currpos] - '0';
+                duration[currel] += pow(0.5, currdivision);
+                currpos++;
             }
-        }
+        } while (command[currpos] != 0);
     }
 }
