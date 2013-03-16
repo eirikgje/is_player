@@ -14,7 +14,8 @@ int main()
     int freq_ind[10] = {0};
     double duration[10]  = {0};
     int num_els;
-    resolve_command("3Dm235", currel, freq_ind, duration, num_els);
+//    resolve_command("3Dm235", currel, freq_ind, duration, num_els);
+    resolve_command("3A2", currel, freq_ind, duration, num_els);
     printf("currel, %d\n", currel);
     printf("freq_ind\n");
     int i;
@@ -22,15 +23,17 @@ int main()
     {
         printf("%d\n", freq_ind[i]);
     }
+    printf("frequency \n");
+    print_frequency(freq_ind[0]);
     printf("duration\n", duration);
     for (i=0; i<10; i++)
     {
         printf("%e\n", duration[i]);
     }
-    printf("num_els, %d\n", num_els);
-    printf("freq_ind0, %d\n", freq_ind[0]);
-    printf("Actual frequency\n");
-    print_frequency(freq_ind[0]);
+//    printf("num_els, %d\n", num_els);
+//    printf("freq_ind0, %d\n", freq_ind[0]);
+//    printf("Actual frequency\n");
+//    print_frequency(freq_ind[0]);
 
 //    fp = open("/dev/tty0", O_WRONLY);
 }

@@ -10,32 +10,54 @@
 
 const double REF_FREQ = log(440.0);
 const double DLOG = log(2) / 12;
-int notearr[12 * 7];
+int notearr[12 * 8];
 int freq_map[256] = {-400};
 int offset_map[256] = {-1000};
+int octave_offset[256] = {-500};
 double ref_time;
+
+void initialize_array(int array[], int len, int val)
+{
+    int i;
+    for (i=0; i<len; i++)
+    {
+        array[i] = val;
+    }
+}
+
+void print_array(int array[], int len)
+{
+    int i;
+    for (i=0; i<len; i++)
+    {
+        printf("%d\n", array[i]);
+    }
+}
 
 void print_frequency(int freq_ind)
 {
-    printf("notearr\n");
-    int i;
-    for (i=0; i<12*7; i++)
-    {
-        printf("%d\n", notearr[i]);
-    }
+//    printf("notearr\n");
+//    int i;
+//    for (i=0; i<12*8; i++)
+//    {
+//        printf("%d\n", notearr[i]);
+//    }
     printf("%d\n", notearr[freq_ind]);
 }
 
 void init_arrs()
 {
+    initialize_array(freq_map, 256, -400);
+    initialize_array(offset_map, 256, -1000);
+    initialize_array(octave_offset, 256, -500);
     int i;
     int j;
     double curr_ref_freq;
-    for (i=0; i < 7; i++)
+    for (i=0; i < 8; i++)
     {
         for (j=0; j < 12; j++)
         {
-            curr_ref_freq = REF_FREQ + ((i + 1) - 4) * log(2);
+            curr_ref_freq = REF_FREQ + (i - 4) * log(2);
             notearr[i * 12 + j] = (int)(exp(curr_ref_freq + j * DLOG) * 1000 + 0.5);
         }
     }
@@ -46,7 +68,16 @@ void init_arrs()
     freq_map['E'] = 7;
     freq_map['F'] = 8;
     freq_map['G'] = 10;
+    octave_offset['A'] = 0;
+    octave_offset['H'] = 0;
+    octave_offset['C'] = -1;
+    octave_offset['D'] = -1;
+    octave_offset['E'] = -1;
+    octave_offset['F'] = -1;
+    octave_offset['G'] = -1;
     offset_map['s'] = 1;
+    offset_map['f'] = -1;
+    offset_map['#'] = 1;
     offset_map['f'] = -1;
 }
 
@@ -83,6 +114,7 @@ void resolve_command(char command[], int currel, int freq_ind[], double duration
     int currdivision;
     int octave;
     int dum;
+    int oct_offset;
     duration[currel] = 0;
     if (command[0] == 'P')
     {
@@ -121,13 +153,14 @@ void resolve_command(char command[], int currel, int freq_ind[], double duration
 //        printf("octave %d\n", octave);
         currpos++;
         dum = freq_map[command[currpos]];
+        oct_offset = octave_offset[command[currpos]];
         if (dum == -400)
         {
             printf("Error in note resolution - note has invalid value\n");
             exit(0);
         }
 //        printf("commandcurrpos %d\n", command[currpos]);
-        freq_ind[currel] = 12 * octave + dum;
+        freq_ind[currel] = 12 * (octave + oct_offset) + dum;
         currpos++;
         if (isalpha(command[currpos]))
         {
@@ -136,6 +169,7 @@ void resolve_command(char command[], int currel, int freq_ind[], double duration
             if (dum == -1000)
             {
                 printf("Error in note resolution - sharp/flat has invalid value\n");
+                exit(0);
             }
             freq_ind[currel] += dum;
             currpos++;
@@ -147,7 +181,7 @@ void resolve_command(char command[], int currel, int freq_ind[], double duration
                 numfound = sscanf(command + currpos, "[%d/%d]%n", &numerator, &denominator, &searchlen);
                 if (numfound != 3)
                 {
-                    printf("Error in Pause resolution - number of arguments found are wrong\n");
+                    printf("Error in note resolution - number of arguments found are wrong\n");
                     printf("%d\n", numfound);
                     exit(0);
                 }
