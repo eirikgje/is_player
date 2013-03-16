@@ -98,6 +98,35 @@ void play_pause(int duration)
     usleep(duration * 1000);
 }
 
+
+//The interface function to the playing part of the program.
+//Input:         
+//      fp: file descriptor for the sound device
+//      freqs, containing (int)frequency*1000 of the notes you want
+//to play. 
+//      duration, containing the duration of the note in ms.
+//      num_els, total number of elements in freqs and duration arrays.
+//Some integers in freqs are special codes for more advanced commands:
+//-1: Play pause with the corresponding length in duration-array.
+//
+void play_sequence(int fp, int freqs[], double duration[], int num_els)
+{
+    int i;
+    int duration_int;
+    for (i=0; i<num_els; i++)
+    {
+        duration_int = (int)duration[i];
+        if (freqs[i] == -1)
+        {
+            play_pause(duration_int);
+        }
+        else
+        {
+            play_note(fp, freqs[i], duration_int);
+        }
+    }
+}
+
 // Input: Command, a string containing the encoded note (or chord) information
 // Currel: which element of the freq and duration arrays we should start at
 // Output: freq, an array containing the index of the frequency to be
@@ -145,6 +174,7 @@ void resolve_command(char command[], int currel, int freq[], double duration[], 
                 currpos++;
             }
         } while (command[currpos] != 0);
+        duration[currel] *= ref_time;
     }
     else
     {
@@ -197,5 +227,6 @@ void resolve_command(char command[], int currel, int freq[], double duration[], 
                 currpos++;
             }
         } while (command[currpos] != 0);
+        duration[currel] *= ref_time;
     }
 }
