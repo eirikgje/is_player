@@ -13,9 +13,9 @@ const double DLOG = log(2) / 12;
 //In which octave the reference tone is located
 const int REF_OCT = 4;
 //int notearr[12 * 8];
-int freq_map[256] = {-400};
-int offset_map[256] = {-1000};
-int octave_offset[256] = {-500};
+int freq_map[256];
+int offset_map[256];
+int octave_offset[256];
 double ref_time;
 
 void initialize_array(int array[], int len, int val)
