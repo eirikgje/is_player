@@ -27,22 +27,14 @@ int main()
         res = fscanf(stdin, "%s", command);
         ch = getc(stdin);
     } while (ch != EOF);
+//    printf("currel, %d\n", currel);
+//    printf("freq\n");
+//    print_array(freq, currel);
+//    printf("duration\n");
+//    print_darray(duration, currel);
+//    return 0;
     fp = open("/dev/tty0", O_WRONLY);
     play_sequence(fp, freq, duration, currel);
-//    resolve_command("3Dm235", currel, freq_ind, duration, num_els);
-//    resolve_command("3Af2", currel, freq, duration, &num_els);
-//    printf("numels %d\n", num_els);
-////    printf("Freq, %d\n", freq[currel]);
-////    printf("duration, %e\n", duration[currel]);
-//    currel += num_els;
-//    resolve_command("P2", currel, freq, duration, &num_els);
-//    currel += num_els;
-//    resolve_command("4Cf2", currel, freq, duration, &num_els);
-//    currel += num_els;
-////    printf("Freq, %d\n", freq[currel]);
-////    printf("duration, %e\n", duration[currel]);
-//
-////    play_note(fp, freq[0], 1000 * duration[0]);
-//    close(fp);
+    close(fp);
     return 0;
 }

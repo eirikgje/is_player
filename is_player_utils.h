@@ -5,3 +5,5 @@ void play_note(int fp, int freq, int duration);
 void play_pause(int duration);
 void resolve_command(char command[], int currel, int freq_ind[], double duration[], int *num_els);
 void play_sequence(int fp, int freqs[], double duration[], int num_els);
+void print_array(int array[], int len);
+void print_darray(double array[], int len);

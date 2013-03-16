@@ -10,9 +10,9 @@
 
 const double REF_FREQ = log(440.0);
 const double DLOG = log(2) / 12;
+const int CHORD_LENGTH = 5;
 //In which octave the reference tone is located
 const int REF_OCT = 4;
-//int notearr[12 * 8];
 int freq_map[256];
 int offset_map[256];
 int octave_offset[256];
@@ -35,6 +35,14 @@ void print_array(int array[], int len)
         printf("%d\n", array[i]);
     }
 }
+void print_darray(double array[], int len)
+{
+    int i;
+    for (i=0; i<len; i++)
+    {
+        printf("%e\n", array[i]);
+    }
+}
 
 //The octave here refers to the 'internal' octave.
 int get_freq(int octave, int note_ind)
@@ -49,17 +57,6 @@ void init_arrs()
     initialize_array(freq_map, 256, -400);
     initialize_array(offset_map, 256, -1000);
     initialize_array(octave_offset, 256, -500);
-//    int i;
-//    int j;
-//    double curr_ref_freq;
-//    for (i=0; i < 8; i++)
-//    {
-//        for (j=0; j < 12; j++)
-//        {
-//            curr_ref_freq = REF_FREQ + (i - 4) * log(2);
-//            notearr[i * 12 + j] = (int)(exp(curr_ref_freq + j * DLOG) * 1000 + 0.5);
-//        }
-//    }
     freq_map['A'] = 0;
     freq_map['H'] = 2;
     freq_map['C'] = 3;
@@ -145,6 +142,7 @@ void resolve_command(char command[], int currel, int freq[], double duration[], 
     int tone;
     int dum;
     int oct_offset;
+    int i;
     duration[currel] = 0;
     if (command[0] == 'P')
     {
@@ -175,6 +173,63 @@ void resolve_command(char command[], int currel, int freq[], double duration[], 
             }
         } while (command[currpos] != 0);
         duration[currel] *= ref_time;
+    }
+    // We want a chord (two tones per chord as of now). Will have the general
+    // form "C3DfEs012'
+    else if (command[0] == 'C')
+    {
+        *num_els = 2;
+        currpos++;
+        //Go through the two notes
+        for (i=0; i<2; i++)
+        {
+            octave = command[currpos] -'0';
+            currpos++;
+            tone = freq_map[command[currpos]];
+            oct_offset = octave_offset[command[currpos]];
+            if (tone == -400)
+            {
+                printf("Error in note resolution - note has invalid value\n");
+                exit(0);
+            }
+            currpos++;
+            if (islower(command[currpos]))
+            {
+                dum = offset_map[command[currpos]];
+                if (dum == -1000)
+                {
+                    printf("Error in note resolution - sharp/flat has invalid value\n");
+                    exit(0);
+                }
+                tone += dum;
+                currpos++;
+            }
+            freq[currel+i] = get_freq(octave+oct_offset, tone);
+        }
+        duration[currel] = ref_time * pow(0.5, CHORD_LENGTH);
+        do
+        {
+            if (command[currpos] == '[')
+            {
+                numfound = sscanf(command + currpos, "[%d/%d]%n", &numerator, &denominator, &searchlen);
+                if (numfound != 3)
+                {
+                    printf("Error in note resolution - number of arguments found are wrong\n");
+                    printf("%d\n", numfound);
+                    exit(0);
+                }
+                currpos += searchlen;
+                duration[currel + 1] += (double)numerator / (double)denominator;
+            }
+            else
+            {
+                //Input should be a number
+                currdivision = command[currpos] - '0';
+                duration[currel + 1] += pow(0.5, currdivision);
+                currpos++;
+            }
+        } while (command[currpos] != 0);
+        duration[currel+1] *= ref_time;
     }
     else
     {
